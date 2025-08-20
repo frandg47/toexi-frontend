@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { getProducts } from "../services/products";
 import { io } from "socket.io-client";
+import { Search } from "lucide-react";
 
 const socket = io("http://localhost:3000");
 
-export default function TablaStockCompleta() {
+export default function TablaStock() {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   const fetchData = async () => {
     try {
@@ -13,65 +18,133 @@ export default function TablaStockCompleta() {
       setProducts(prodData);
     } catch (e) {
       console.error("Error fetching products:", e);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-
     socket.on("products.updated", fetchData);
-    socket.on("fx.updated", fetchData);
-    socket.on("payments.updated", fetchData);
-
-    return () => {
-      socket.off("products.updated", fetchData);
-      socket.off("fx.updated", fetchData);
-      socket.off("payments.updated", fetchData);
-    };
+    return () => socket.off("products.updated", fetchData);
   }, []);
 
   const formatCurrency = (value, currency = "ARS") =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency }).format(value);
 
+  // Obtenemos marcas y categorías únicas
+  const brands = [...new Set(products.map((p) => p.brand))];
+  const categories = [...new Set(products.map((p) => p.category))];
+
+  // Filtramos resultados
+  const filtered = products.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()) &&
+    (selectedBrand === "" || p.brand === selectedBrand) &&
+    (selectedCategory === "" || p.category === selectedCategory)
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Stock de Productos</h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-300 text-center">
-          <thead className="bg-gray-100">
+      {/* Header */}
+      {/* <h1 className="text-2xl font-bold mb-4">Productos</h1> */}
+
+      {/* Barra de búsqueda + filtros */}
+      <div className="flex flex-wrap gap-4 mb-4">
+        {/* Search bar */}
+        <div className="flex items-center flex-1 bg-gray-100 px-3 py-2 rounded-lg">
+          <Search size={18} className="text-gray-500 mr-2" />
+          <input
+            type="text"
+            placeholder="Buscar producto..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-transparent outline-none"
+          />
+        </div>
+
+        {/* Filtro Marca */}
+        <select
+          value={selectedBrand}
+          onChange={(e) => setSelectedBrand(e.target.value)}
+          className="border rounded-lg px-3 py-2"
+        >
+          <option value="">Todas las marcas</option>
+          {brands.map((b, idx) => (
+            <option key={idx} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+
+        {/* Filtro Categoría */}
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="border rounded-lg px-3 py-2"
+        >
+          <option value="">Todas las categorías</option>
+          {categories.map((c, idx) => (
+            <option key={idx} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Tabla */}
+      <div className="overflow-x-auto rounded-lg shadow">
+        <table className="min-w-full border border-gray-200 bg-white">
+          <thead className="bg-gray-50 text-gray-600">
             <tr>
-              <th className="px-4 py-2 border">ID</th>
-              <th className="px-4 py-2 border">Nombre</th>
-              <th className="px-4 py-2 border">Marca</th>
-              <th className="px-4 py-2 border">Categoría</th>
-              <th className="px-4 py-2 border">USD</th>
-              <th className="px-4 py-2 border">ARS</th>
-              {products[0]?.paymentPrices?.map((pm, idx) => (
-                <th key={idx} className="px-4 py-2 border">{pm.name}</th>
+              <th className="px-4 py-2 text-left">Portada</th>
+              <th className="px-4 py-2 text-left">Nombre</th>
+              <th className="px-4 py-2 text-center">Stock</th>
+              <th className="px-4 py-2 text-left">Marca</th>
+              <th className="px-4 py-2 text-left">Categoría</th>
+              <th className="px-4 py-2 text-center">USD</th>
+              <th className="px-4 py-2 text-center">ARS</th>
+              {products[0]?.pricesByMethod?.map((pm, idx) => (
+                <th key={idx} className="px-4 py-2 text-center">{pm.method}</th>
               ))}
-              <th className="px-4 py-2 border">Stock</th>
-              <th className="px-4 py-2 border">Backorder</th>
-              <th className="px-4 py-2 border">Comisión</th>
             </tr>
           </thead>
           <tbody>
-            {products.map(p => (
-              <tr key={p.id} className={p.stock < 5 ? "bg-red-50" : ""}>
-                <td className="px-4 py-2 border">{p.id}</td>
-                <td className="px-4 py-2 border">{p.name}</td>
-                <td className="px-4 py-2 border">{p.brand}</td>
-                <td className="px-4 py-2 border">{p.category}</td>
-                <td className="px-4 py-2 border">{formatCurrency(p.usd_price, "USD")}</td>
-                <td className="px-4 py-2 border">{formatCurrency(p.ars_price)}</td>
-                {p.paymentPrices.map((pm, idx) => (
-                  <td key={idx} className="px-4 py-2 border">{formatCurrency(pm.price)}</td>
-                ))}
-                <td className={`px-4 py-2 border font-semibold ${p.stock < 5 ? "text-red-600" : ""}`}>{p.stock}</td>
-                <td className="px-4 py-2 border">{p.allow_backorder ? p.lead_time_label : "Disponible"}</td>
-                <td className="px-4 py-2 border">
-                  {p.commission_pct ? `${(p.commission_pct*100).toFixed(0)}%` : ""}
-                  {p.commission_fixed ? ` $${p.commission_fixed.toFixed(2)}` : ""}
+            {filtered.map((p) => (
+              <tr
+                key={p.id}
+                className="border-t hover:bg-gray-50 transition"
+              >
+                {/* Portada */}
+                <td className="px-4 py-2">
+                  <img
+                    src={p.image || "https://via.placeholder.com/80"}
+                    alt={p.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
                 </td>
+                <td className="px-4 py-2">{p.name}</td>
+                <td
+                  className={`px-4 py-2 text-center font-semibold ${
+                    p.stock < 2 ? "text-red-600" : "text-green-600"
+                  }`}
+                >
+                  {p.stock}
+                </td>
+                <td className="px-4 py-2">{p.brand}</td>
+                <td className="px-4 py-2">{p.category}</td>
+                <td className="px-4 py-2 text-center">{formatCurrency(p.usd, "USD")}</td>
+                <td className="px-4 py-2 text-center">{formatCurrency(p.ars)}</td>
+                {p.pricesByMethod?.map((pm, idx) => (
+                  <td key={idx} className="px-4 py-2 text-center">{formatCurrency(pm.price)}</td>
+                ))}
               </tr>
             ))}
           </tbody>
