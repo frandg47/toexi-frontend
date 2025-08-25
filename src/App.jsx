@@ -1,11 +1,13 @@
+import AdminTable from "./components/AdminTable"
 import Header from "./components/Header"
-import TablaStock from "./pages/TablaStock"
+import PublicTable from "./pages/PublicTable"
 
 function App() {
   return (
     <>
       <Header />
-      <TablaStock />
+      <PublicTable />
+      <AdminTable />
     </>
   )
 }
