@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getProducts } from "../services/products";
 import { io } from "socket.io-client";
 import { Search } from "lucide-react";
+import Header from "../components/Header";
 
 const socket = io("http://localhost:3000");
 
@@ -56,118 +57,121 @@ export default function PublicTable() {
   }
 
   return (
-    <div className="p-4">
-      {/* Header */}
-      {/* <h1 className="text-2xl font-bold mb-4">Productos</h1> */}
+    <>
+      <Header />
+      <div className="p-4">
+        {/* Header */}
+        {/* <h1 className="text-2xl font-bold mb-4">Productos</h1> */}
 
-      {/* Barra de búsqueda + filtros */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        {/* Search bar */}
-        <div className="flex items-center flex-1 bg-gray-100 px-3 py-2 rounded-lg">
-          <Search size={18} className="text-gray-500 mr-2" />
-          <input
-            type="text"
-            placeholder="Buscar producto..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
+        {/* Barra de búsqueda + filtros */}
+        <div className="flex flex-wrap gap-4 mb-4">
+          {/* Search bar */}
+          <div className="flex items-center flex-1 bg-gray-100 px-3 py-2 rounded-lg">
+            <Search size={18} className="text-gray-500 mr-2" />
+            <input
+              type="text"
+              placeholder="Buscar producto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent outline-none"
+            />
+          </div>
+
+          {/* Filtro Marca */}
+          <select
+            value={selectedBrand}
+            onChange={(e) => setSelectedBrand(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          >
+            <option value="">Todas las marcas</option>
+            {brands.map((b, idx) => (
+              <option key={idx} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+
+          {/* Filtro Categoría */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="border rounded-lg px-3 py-2"
+          >
+            <option value="">Todas las categorías</option>
+            {categories.map((c, idx) => (
+              <option key={idx} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Filtro Marca */}
-        <select
-          value={selectedBrand}
-          onChange={(e) => setSelectedBrand(e.target.value)}
-          className="border rounded-lg px-3 py-2"
-        >
-          <option value="">Todas las marcas</option>
-          {brands.map((b, idx) => (
-            <option key={idx} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-
-        {/* Filtro Categoría */}
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="border rounded-lg px-3 py-2"
-        >
-          <option value="">Todas las categorías</option>
-          {categories.map((c, idx) => (
-            <option key={idx} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Tabla */}
-      <div className="overflow-x-auto rounded-lg shadow">
-        <table className="min-w-full border border-gray-200 bg-white">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="px-4 py-2 text-left">Portada</th>
-              <th className="px-4 py-2 text-left">Nombre</th>
-              <th className="px-4 py-2 text-center">Stock</th>
-              <th className="px-4 py-2 text-left">Marca</th>
-              <th className="px-4 py-2 text-left">Categoría</th>
-              <th className="px-4 py-2 text-center">USD</th>
-              <th className="px-4 py-2 text-center">ARS</th>
-              {products[0]?.pricesByMethod?.map((pm, idx) => (
-                <th key={idx} className="px-4 py-2 text-center">
-                  {pm.method}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr key={p.id} className="border-t hover:bg-gray-50 transition">
-                {/* Portada */}
-                <td className="px-4 py-2">
-                  <img
-                    src={p.imageUrl}
-                    alt={p.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                </td>
-                <td className="px-4 py-2">{p.name}</td>
-                <td
-                  className={`px-4 py-2 text-center font-semibold ${
-                    p.stock < 2 ? "text-red-600" : "text-green-600"
-                  }`}
-                >
-                  {" "}
-                  {p.stock > 0 ? (
-                    <span className="text-green-600">{p.stock}</span>
-                  ) : p.encargable ? ( // <-- Usa p.encargable
-                    <span className="text-yellow-600">
-                      {`Por pedido: ${p.leadTime || "Sin stock, se encarga"}`}
-                    </span>
-                  ) : (
-                    <span className="text-red-600">Sin stock</span>
-                  )}
-                </td>
-                <td className="px-4 py-2">{p.brand}</td>
-                <td className="px-4 py-2">{p.category}</td>
-                <td className="px-4 py-2 text-center">
-                  {formatCurrency(p.usd, "USD")}
-                </td>
-                <td className="px-4 py-2 text-center">
-                  {formatCurrency(p.ars)}
-                </td>
-                {p.pricesByMethod?.map((pm, idx) => (
-                  <td key={idx} className="px-4 py-2 text-center">
-                    {formatCurrency(pm.price)}
-                  </td>
+        {/* Tabla */}
+        <div className="overflow-x-auto rounded-lg shadow">
+          <table className="min-w-full border border-gray-200 bg-white">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-4 py-2 text-left">Portada</th>
+                <th className="px-4 py-2 text-left">Nombre</th>
+                <th className="px-4 py-2 text-center">Stock</th>
+                <th className="px-4 py-2 text-left">Marca</th>
+                <th className="px-4 py-2 text-left">Categoría</th>
+                <th className="px-4 py-2 text-center">USD</th>
+                <th className="px-4 py-2 text-center">ARS</th>
+                {products[0]?.pricesByMethod?.map((pm, idx) => (
+                  <th key={idx} className="px-4 py-2 text-center">
+                    {pm.method}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((p) => (
+                <tr key={p.id} className="border-t hover:bg-gray-50 transition">
+                  {/* Portada */}
+                  <td className="px-4 py-2">
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  </td>
+                  <td className="px-4 py-2">{p.name}</td>
+                  <td
+                    className={`px-4 py-2 text-center font-semibold ${
+                      p.stock < 2 ? "text-red-600" : "text-green-600"
+                    }`}
+                  >
+                    {" "}
+                    {p.stock > 0 ? (
+                      <span className="text-green-600">{p.stock}</span>
+                    ) : p.encargable ? ( // <-- Usa p.encargable
+                      <span className="text-yellow-600">
+                        {`Por pedido: ${p.leadTime || "Sin stock, se encarga"}`}
+                      </span>
+                    ) : (
+                      <span className="text-red-600">Sin stock</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2">{p.brand}</td>
+                  <td className="px-4 py-2">{p.category}</td>
+                  <td className="px-4 py-2 text-center">
+                    {formatCurrency(p.usd, "USD")}
+                  </td>
+                  <td className="px-4 py-2 text-center">
+                    {formatCurrency(p.ars)}
+                  </td>
+                  {p.pricesByMethod?.map((pm, idx) => (
+                    <td key={idx} className="px-4 py-2 text-center">
+                      {formatCurrency(pm.price)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
